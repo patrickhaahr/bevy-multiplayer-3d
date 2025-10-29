@@ -7,7 +7,7 @@ use crate::network::protocol::{Player, PlayerPosition};
 
 pub fn spawn_players_system(
     mut commands: Commands,
-    mut server_events: EventReader<ServerEvent>,
+    mut server_events: MessageReader<ServerEvent>,
     mut player_count: ResMut<PlayerCount>,
 ) {
     for event in server_events.read() {

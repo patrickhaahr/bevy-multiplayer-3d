@@ -7,11 +7,8 @@ pub fn setup_world(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // Spawn camera looking at the center
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 8.0, 12.0).looking_at(Vec3::new(0.0, 0.5, 0.0), Vec3::Y),
-    ));
+    // Note: Camera is now spawned per-player in the rendering system
+    // when the local player entity is replicated
 
     // Add lighting
     commands.spawn((

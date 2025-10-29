@@ -48,7 +48,7 @@ pub fn setup_server(mut commands: Commands, channels: Res<RepliconChannels>) {
     println!("Server ready and listening on {}", server_addr);
 }
 
-pub fn server_connection_system(mut server_events: EventReader<ServerEvent>) {
+pub fn server_connection_system(mut server_events: MessageReader<ServerEvent>) {
     for event in server_events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {

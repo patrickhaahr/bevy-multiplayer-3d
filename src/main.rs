@@ -1,11 +1,22 @@
 use bevy::prelude::*;
+use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
 
 mod game;
 mod network;
 
-use game::{init_server_state, render_replicated_players, setup_world, spawn_players_system};
+use game::{
+    cursor::CursorPlugin,
+    init_server_state, render_replicated_players, setup_world, spawn_players_system,
+    shooting::TracerPlugin,
+};
+use game::player::{
+    camera_controller::update_camera_controller,
+    input::PlayerInput,
+    movement::{apply_local_movement, update_movement_input},
+    shooting::handle_shooting,
+};
 use network::{
     client_connection_system, server_connection_system, setup_client, setup_server, Player,
     PlayerPosition, PORT,
@@ -56,18 +67,33 @@ fn run_client() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "Client".to_string(),
-                    resolution: (800, 600).into(),
+                    title: "FPS Multiplayer Client".to_string(),
+                    resolution: (1280, 720).into(),
                     ..default()
                 }),
                 ..default()
             }),
             RepliconPlugins,
             RepliconRenetPlugins,
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            // RapierDebugRenderPlugin::default(), // Uncomment for physics debug
+            CursorPlugin,
+            TracerPlugin,
         ))
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
+        .init_resource::<PlayerInput>()
         .add_systems(Startup, (setup_client, setup_world))
-        .add_systems(Update, (client_connection_system, render_replicated_players))
+        .add_systems(
+            Update,
+            (
+                client_connection_system,
+                render_replicated_players,
+                update_camera_controller,
+                update_movement_input,
+                apply_local_movement,
+                handle_shooting,
+            ),
+        )
         .run();
 }

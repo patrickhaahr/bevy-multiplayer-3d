@@ -13,6 +13,10 @@ use std::{
 use super::protocol::PORT;
 use super::protocol::PROTOCOL_ID;
 
+// Resource to track the local client ID
+#[derive(Resource)]
+pub struct LocalClientId(pub u64);
+
 pub fn setup_client(mut commands: Commands, channels: Res<RepliconChannels>) {
     let server_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), PORT);
     let socket =
@@ -44,8 +48,9 @@ pub fn setup_client(mut commands: Commands, channels: Res<RepliconChannels>) {
 
     commands.insert_resource(client);
     commands.insert_resource(transport);
+    commands.insert_resource(LocalClientId(client_id));
 
-    println!("Client connecting to {}", server_addr);
+    println!("Client connecting to {} with ID {}", server_addr, client_id);
 }
 
 pub fn client_connection_system(client: Option<Res<RenetClient>>) {
