@@ -4,9 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.17.2", features = ["dynamic_linking"] }
+bevy = { version = "0.17.2", features = ["dynamic_linking", "jpeg"] }
+bevy_rapier3d = { git = "https://github.com/lukasfri/bevy_rapier", rev = "a5c82f08c86f9fd44430081e7d6ea1a5bb296e8b" }
 bevy_replicon = "0.36.0"
 bevy_replicon_renet = "0.12"
 renet = "1.2.0"
 renet_netcode = "1.2.0"
 serde = "1.0"
+
+
+[profile.dev]
+opt-level = 1
