@@ -191,15 +191,16 @@ pub fn handle_shoot_events(
 
         let client_id = network_id.get();
         
-        // Verify this client has a player
-        let player_exists = players.iter().any(|(_, player)| player.id == client_id);
-        if !player_exists {
+        // Find the shooter's player entity
+        let shooter_entity = players
+            .iter()
+            .find(|(_, player)| player.id == client_id)
+            .map(|(entity, _)| entity);
+        
+        let Some(shooter_entity) = shooter_entity else {
             warn!("Received shoot event from client {} without a player", client_id);
             continue;
-        }
-
-        println!("[SERVER] Client {} shot at origin {:?}, direction {:?}", 
-            client_id, event.message.origin, event.message.direction);
+        };
 
         // Perform raycast on server
         let Ok(rapier_context) = rapier_context.single() else {
@@ -207,7 +208,8 @@ pub fn handle_shoot_events(
             continue;
         };
 
-        let filter = QueryFilter::default();
+        // Exclude the shooter's own collider from the raycast
+        let filter = QueryFilter::default().exclude_rigid_body(shooter_entity);
 
         rapier_context.with_query_pipeline(filter, |query_pipeline| {
             if let Some((hit_entity, toi)) = query_pipeline.cast_ray(
@@ -216,24 +218,16 @@ pub fn handle_shoot_events(
                 f32::MAX,
                 true,
             ) {
-                let hit_position = event.message.origin + event.message.direction * toi;
-                println!("[SERVER] Hit entity {:?} at distance {}, position {:?}", 
-                    hit_entity, toi, hit_position);
-
                 // Check if we hit an enemy
                 if enemies.contains(hit_entity) {
-                    println!("[SERVER] HIT! Enemy {:?} was hit by client {}", hit_entity, client_id);
+                    println!("[SERVER] Client {} hit enemy {:?} at {:.2}m", 
+                        client_id, hit_entity, toi);
                 }
                 // Check if we hit a player
                 else if let Ok((_, hit_player)) = players.get(hit_entity) {
-                    println!("[SERVER] HIT! Player {} (entity {:?}) was hit by client {}", 
-                        hit_player.id, hit_entity, client_id);
+                    println!("[SERVER] Client {} hit player {} at {:.2}m", 
+                        client_id, hit_player.id, toi);
                 }
-                else {
-                    println!("[SERVER] Hit non-target entity {:?}", hit_entity);
-                }
-            } else {
-                println!("[SERVER] Shot missed - no hit detected");
             }
         });
     }
