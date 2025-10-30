@@ -12,6 +12,7 @@ use game::{
     init_server_state, render_replicated_players, sync_remote_player_rotation, sync_player_position, setup_world, setup_server_world, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position, handle_shoot_events,
     shooting::TracerPlugin,
     spawn_enemies_system, enemy_fsm_system, enemy_movement_system, render_enemies_system, sync_enemy_position, sync_transform_to_enemy_position,
+    setup_crosshair,
 };
 use game::player::{
     camera_controller::update_camera_controller,
@@ -109,7 +110,7 @@ fn run_client(server_ip: String) {
         .add_client_message::<ShootEvent>(Channel::Unordered)
         .init_resource::<PlayerInput>()
         .insert_resource(network::ServerIpAddress(server_ip))
-        .add_systems(Startup, (setup_client, setup_world))
+        .add_systems(Startup, (setup_client, setup_world, setup_crosshair))
         .add_systems(
             Update,
             (
