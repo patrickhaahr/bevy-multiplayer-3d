@@ -61,6 +61,39 @@ impl Default for EnemyMovement {
     }
 }
 
+/// Flocking behavior parameters (server-only)
+#[derive(Component)]
+pub struct FlockingBehavior {
+    /// Range within which enemies are considered neighbors
+    pub neighbor_range: f32,
+    /// Weight for cohesion (move towards center of flock)
+    pub cohesion_weight: f32,
+    /// Weight for alignment (match velocity with neighbors)
+    pub alignment_weight: f32,
+    /// Weight for separation (avoid crowding)
+    pub separation_weight: f32,
+    /// Minimum distance to maintain from neighbors
+    pub separation_distance: f32,
+}
+
+impl Default for FlockingBehavior {
+    fn default() -> Self {
+        Self {
+            neighbor_range: 10.0,
+            cohesion_weight: 0.8,
+            alignment_weight: 0.8,
+            separation_weight: 3.0, // Much stronger separation to prevent collision
+            separation_distance: 2.5, // Larger minimum distance (capsule radius is 0.5, so 2.5 gives good spacing)
+        }
+    }
+}
+
+/// Velocity component for enemies (server-only)
+#[derive(Component, Default)]
+pub struct EnemyVelocity {
+    pub velocity: Vec3,
+}
+
 /// Client-side marker for rendered enemies
 #[derive(Component)]
 pub struct RenderedEnemy;

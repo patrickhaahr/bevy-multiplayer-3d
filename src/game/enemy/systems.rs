@@ -2,38 +2,87 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use crate::network::protocol::{PlayerPosition, Enemy, EnemyPosition};
-use super::components::{EnemyState, PatrolData, EnemyMovement, RenderedEnemy, get_current_waypoint, advance_waypoint};
+use super::components::{EnemyState, PatrolData, EnemyMovement, RenderedEnemy, FlockingBehavior, EnemyVelocity, get_current_waypoint, advance_waypoint};
 
 /// Spawn enemies in the world (server-side)
 pub fn spawn_enemies_system(
     mut commands: Commands,
     enemies: Query<&Enemy>,
 ) {
-    // Only spawn one enemy for now
+    // Spawn 3 enemies in a cluster
     if enemies.iter().count() > 0 {
         return;
     }
     
-    let spawn_pos = Vec3::new(10.0, 1.0, 10.0);
+    // Spawn 3 enemies in a triangle formation to demonstrate flocking
+    let cluster_center = Vec3::new(10.0, 1.0, 10.0);
+    let spawn_radius = 3.0;
     
+    // Enemy 1 - north
+    let spawn_pos_1 = cluster_center + Vec3::new(0.0, 0.0, spawn_radius);
     commands.spawn((
         Enemy { id: 1 },
         EnemyPosition {
-            x: spawn_pos.x,
-            y: spawn_pos.y,
-            z: spawn_pos.z,
+            x: spawn_pos_1.x,
+            y: spawn_pos_1.y,
+            z: spawn_pos_1.z,
         },
         EnemyState::Patrol,
-        PatrolData::new(spawn_pos, 5.0),
+        PatrolData::new(cluster_center, 5.0),
         EnemyMovement::default(),
-        Transform::from_translation(spawn_pos),
+        FlockingBehavior::default(),
+        EnemyVelocity::default(),
+        Transform::from_translation(spawn_pos_1),
         GlobalTransform::default(),
         Collider::capsule_y(0.5, 0.5),
         RigidBody::KinematicPositionBased,
         Replicated,
     ));
+    info!("Spawned enemy 1 at {:?}", spawn_pos_1);
     
-    info!("Spawned enemy at {:?}", spawn_pos);
+    // Enemy 2 - southwest
+    let spawn_pos_2 = cluster_center + Vec3::new(-spawn_radius * 0.866, 0.0, -spawn_radius * 0.5);
+    commands.spawn((
+        Enemy { id: 2 },
+        EnemyPosition {
+            x: spawn_pos_2.x,
+            y: spawn_pos_2.y,
+            z: spawn_pos_2.z,
+        },
+        EnemyState::Patrol,
+        PatrolData::new(cluster_center, 5.0),
+        EnemyMovement::default(),
+        FlockingBehavior::default(),
+        EnemyVelocity::default(),
+        Transform::from_translation(spawn_pos_2),
+        GlobalTransform::default(),
+        Collider::capsule_y(0.5, 0.5),
+        RigidBody::KinematicPositionBased,
+        Replicated,
+    ));
+    info!("Spawned enemy 2 at {:?}", spawn_pos_2);
+    
+    // Enemy 3 - southeast
+    let spawn_pos_3 = cluster_center + Vec3::new(spawn_radius * 0.866, 0.0, -spawn_radius * 0.5);
+    commands.spawn((
+        Enemy { id: 3 },
+        EnemyPosition {
+            x: spawn_pos_3.x,
+            y: spawn_pos_3.y,
+            z: spawn_pos_3.z,
+        },
+        EnemyState::Patrol,
+        PatrolData::new(cluster_center, 5.0),
+        EnemyMovement::default(),
+        FlockingBehavior::default(),
+        EnemyVelocity::default(),
+        Transform::from_translation(spawn_pos_3),
+        GlobalTransform::default(),
+        Collider::capsule_y(0.5, 0.5),
+        RigidBody::KinematicPositionBased,
+        Replicated,
+    ));
+    info!("Spawned enemy 3 at {:?}", spawn_pos_3);
 }
 
 /// Client-side rendering for enemies (add visual mesh)
@@ -127,6 +176,93 @@ pub fn enemy_fsm_system(
     }
 }
 
+/// Flocking behavior system - calculates flocking forces (server-only)
+/// This runs before movement to calculate desired velocities based on neighbors
+pub fn enemy_flocking_system(
+    mut enemies: Query<(
+        Entity,
+        &Transform,
+        &EnemyState,
+        &FlockingBehavior,
+        &mut EnemyVelocity,
+    ), With<Enemy>>,
+) {
+    // Collect all enemy positions and velocities for neighbor calculations
+    let enemy_data: Vec<(Entity, Vec3, Vec3)> = enemies
+        .iter()
+        .map(|(entity, transform, _state, _flock, velocity)| {
+            (entity, transform.translation, velocity.velocity)
+        })
+        .collect();
+    
+    // Calculate flocking forces for each enemy
+    for (entity, transform, state, flock_params, mut velocity) in enemies.iter_mut() {
+        // Only apply flocking when in Chase state (cooperative hunting)
+        if *state != EnemyState::Chase {
+            continue;
+        }
+        
+        let mut cohesion = Vec3::ZERO;
+        let mut alignment = Vec3::ZERO;
+        let mut separation = Vec3::ZERO;
+        let mut neighbor_count = 0;
+        
+        let my_position = transform.translation;
+        
+        // Calculate flocking forces based on neighbors
+        for (other_entity, other_position, other_velocity) in &enemy_data {
+            if *other_entity == entity {
+                continue; // Skip self
+            }
+            
+            let offset = *other_position - my_position;
+            let distance = offset.length();
+            
+            // Only consider enemies within neighbor range
+            if distance < flock_params.neighbor_range && distance > 0.01 {
+                neighbor_count += 1;
+                
+                // Cohesion: steer towards average position of neighbors
+                cohesion += *other_position;
+                
+                // Alignment: steer towards average velocity of neighbors
+                alignment += *other_velocity;
+                
+                // Separation: steer away from neighbors that are too close
+                // Use inverse square law - stronger repulsion when very close
+                if distance < flock_params.separation_distance {
+                    let strength = (flock_params.separation_distance - distance) / flock_params.separation_distance;
+                    let repulsion = -offset.normalize_or_zero() * (strength * strength);
+                    separation += repulsion;
+                }
+            }
+        }
+        
+        // Apply flocking forces if we have neighbors
+        if neighbor_count > 0 {
+            // Cohesion: move towards center of mass
+            cohesion = (cohesion / neighbor_count as f32 - my_position).normalize_or_zero() 
+                * flock_params.cohesion_weight;
+            
+            // Alignment: match average velocity
+            alignment = (alignment / neighbor_count as f32).normalize_or_zero() 
+                * flock_params.alignment_weight;
+            
+            // Separation: already calculated, just apply weight
+            separation = separation.normalize_or_zero() * flock_params.separation_weight;
+            
+            // Combine all forces
+            let flocking_force = cohesion + alignment + separation;
+            
+            // Store the flocking influence in velocity (will be combined with movement in next system)
+            velocity.velocity = flocking_force;
+        } else {
+            // No neighbors, reset flocking velocity
+            velocity.velocity = Vec3::ZERO;
+        }
+    }
+}
+
 /// Enemy movement system based on current state (server-only)
 pub fn enemy_movement_system(
     mut enemies: Query<(
@@ -134,11 +270,12 @@ pub fn enemy_movement_system(
         &EnemyState,
         &mut PatrolData,
         &EnemyMovement,
+        &EnemyVelocity,
     ), With<Enemy>>,
     players: Query<&Transform, (With<PlayerPosition>, Without<Enemy>)>,
     time: Res<Time>,
 ) {
-    for (mut enemy_transform, state, mut patrol, movement) in enemies.iter_mut() {
+    for (mut enemy_transform, state, mut patrol, movement, velocity) in enemies.iter_mut() {
         match *state {
             EnemyState::Patrol => {
                 let waypoint = get_current_waypoint(&patrol);
@@ -165,7 +302,14 @@ pub fn enemy_movement_system(
                         0.0 // Stand still when attacking
                     };
                     
-                    enemy_transform.translation += direction * speed * time.delta_secs();
+                    // Combine player-seeking direction with flocking velocity
+                    let mut final_direction = direction;
+                    if velocity.velocity.length_squared() > 0.01 {
+                        // Blend flocking (30%) with player-seeking (70%)
+                        final_direction = (direction * 0.7 + velocity.velocity.normalize_or_zero() * 0.3).normalize_or_zero();
+                    }
+                    
+                    enemy_transform.translation += final_direction * speed * time.delta_secs();
                     
                     // Make enemy look at player
                     if direction.length_squared() > 0.0 {
