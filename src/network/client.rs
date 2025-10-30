@@ -38,12 +38,13 @@ pub fn setup_client(mut commands: Commands, channels: Res<RepliconChannels>) {
         .expect("Failed to create client transport");
 
     // Get Renet channel configs
-    let channel_configs = channels.server_configs();
+    let server_channels = channels.server_configs();
+    let client_channels = channels.client_configs();
 
     let client = RenetClient::new(ConnectionConfig {
         available_bytes_per_tick: 1024 * 1024,
-        client_channels_config: channel_configs.clone(),
-        server_channels_config: channel_configs,
+        server_channels_config: server_channels,
+        client_channels_config: client_channels,
     });
 
     commands.insert_resource(client);

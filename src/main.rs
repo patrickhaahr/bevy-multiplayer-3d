@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::transform::TransformPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use bevy_replicon_renet::RepliconRenetPlugins;
@@ -8,7 +9,7 @@ mod network;
 
 use game::{
     cursor::CursorPlugin,
-    init_server_state, render_replicated_players, sync_remote_player_rotation, setup_world, spawn_players_system, handle_rotation_input,
+    init_server_state, render_replicated_players, sync_remote_player_rotation, sync_player_position, setup_world, setup_server_world, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position,
     shooting::TracerPlugin,
 };
 use game::player::{
@@ -21,7 +22,7 @@ use network::{
     client_connection_system, server_connection_system, setup_client, setup_server, Player,
     PlayerPosition, PlayerRotation, PORT,
 };
-use network::protocol::RotationInput;
+use network::protocol::{RotationInput, MovementInput};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -51,15 +52,18 @@ fn run_server() {
             MinimalPlugins,
             AssetPlugin::default(),
             bevy::state::app::StatesPlugin,
+            TransformPlugin,
             RepliconPlugins,
             RepliconRenetPlugins,
+            RapierPhysicsPlugin::<NoUserData>::default(),
         ))
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
         .add_client_message::<RotationInput>(Channel::Unordered)
-        .add_systems(Startup, (setup_server, init_server_state))
-        .add_systems(Update, (server_connection_system, spawn_players_system, handle_rotation_input))
+        .add_client_message::<MovementInput>(Channel::Unordered)
+        .add_systems(Startup, (setup_server, init_server_state, setup_server_world))
+        .add_systems(Update, (server_connection_system, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position))
         .run();
 }
 
@@ -79,7 +83,7 @@ fn run_client() {
             RepliconPlugins,
             RepliconRenetPlugins,
             RapierPhysicsPlugin::<NoUserData>::default(),
-            // RapierDebugRenderPlugin::default(), // Uncomment for physics debug
+            RapierDebugRenderPlugin::default(), // Physics debug visualization
             CursorPlugin,
             TracerPlugin,
         ))
@@ -87,6 +91,7 @@ fn run_client() {
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
         .add_client_message::<RotationInput>(Channel::Unordered)
+        .add_client_message::<MovementInput>(Channel::Unordered)
         .init_resource::<PlayerInput>()
         .add_systems(Startup, (setup_client, setup_world))
         .add_systems(
@@ -95,6 +100,7 @@ fn run_client() {
                 client_connection_system,
                 render_replicated_players,
                 sync_remote_player_rotation,
+                sync_player_position,
                 update_camera_controller,
                 update_movement_input,
                 apply_local_movement,

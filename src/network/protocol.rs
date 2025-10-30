@@ -12,6 +12,12 @@ pub struct RotationInput {
     pub pitch: f32,
 }
 
+#[derive(Message, Serialize, Deserialize)]
+pub struct MovementInput {
+    pub forward: f32,  // positive = forward, negative = backward
+    pub right: f32,    // positive = right, negative = left
+}
+
 // Replicated components
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Player {

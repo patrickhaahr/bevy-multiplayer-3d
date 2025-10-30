@@ -21,7 +21,7 @@ pub fn render_replicated_players(
 
         let is_local_player = player.id == client_id;
 
-        // Add base rendering components
+        // Add base rendering components (no physics - server handles that)
         commands.entity(entity).insert((
             RenderedPlayer,
             Transform::from_xyz(pos.x, pos.y, pos.z),
@@ -78,7 +78,7 @@ pub fn render_replicated_players(
             
             let model_entity = commands.spawn((
                 SceneRoot(player_model),
-                Transform::from_xyz(0.0, -1.5, 0.0)
+                Transform::from_xyz(0.0, -1.8, 0.0)
                     .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
                 GlobalTransform::default(),
             )).id();
@@ -87,12 +87,14 @@ pub fn render_replicated_players(
             let gun_model: Handle<Scene> = asset_server.load("models/gun.glb#Scene0");
             let gun_entity = commands.spawn((
                 SceneRoot(gun_model),
-                Transform::from_xyz(0.5, 0.8, 0.3)  // Position gun relative to player model
-                    .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
+                // Apply -180° to cancel the entity's +180° compensation rotation
+                Transform::from_xyz(0.5, 0.8, -0.3)
+                    .with_rotation(Quat::from_rotation_y(-std::f32::consts::PI)),
                 GlobalTransform::default(),
             )).id();
-            
-            // Make model and gun children of player entity
+
+            // Make model and gun direct children of player entity
+            // Gun inherits only the player entity's yaw rotation, not the model's 180° correction
             commands.entity(model_entity).set_parent_in_place(entity);
             commands.entity(gun_entity).set_parent_in_place(entity);
         }
@@ -104,13 +106,24 @@ pub fn sync_remote_player_rotation(
     local_client_id: Res<LocalClientId>,
 ) {
     let client_id = local_client_id.0;
-    
+
     for (player, rotation, mut transform) in players.iter_mut() {
         // Only update remote players (not the local player)
         if player.id != client_id {
-            // Apply yaw rotation to the player entity (makes them face the right direction)
-            let y_quat = Quat::from_axis_angle(Vec3::Y, rotation.yaw.to_radians());
+            // Apply yaw rotation + 180° to compensate for model's backwards orientation
+            let y_quat = Quat::from_axis_angle(Vec3::Y, (rotation.yaw + 180.0).to_radians());
             transform.rotation = y_quat;
         }
+    }
+}
+
+pub fn sync_player_position(
+    mut players: Query<(&PlayerPosition, &mut Transform), With<RenderedPlayer>>,
+) {
+    for (position, mut transform) in players.iter_mut() {
+        // Update transform position from replicated PlayerPosition
+        transform.translation.x = position.x;
+        transform.translation.y = position.y;
+        transform.translation.z = position.z;
     }
 }

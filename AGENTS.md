@@ -29,6 +29,7 @@ All documentation is generated locally in `target/doc/`:
 ### Source Code Access
 If documentation is insufficient, you can inspect the actual source code of dependencies:
 - **Crate sources**: Located in `~/.cargo/registry/src/`
+- **Bevy_rapier3d**: `~/.cargo/git/checkouts/bevy_rapier-0ed6fb17c9a8da50/a5c82f0/` - Rapier physics engine. we are using a custom commit of this plugin.
 - Use this when you need to understand implementation details, see examples in the source, or verify behavior
 
 ### Workflow

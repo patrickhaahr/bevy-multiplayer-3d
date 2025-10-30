@@ -1,5 +1,6 @@
 use super::{camera_controller::CameraController, input::PlayerInput};
 use bevy::prelude::*;
+use crate::network::protocol::MovementInput;
 
 pub fn update_movement_input(keys: Res<ButtonInput<KeyCode>>, mut input: ResMut<PlayerInput>) {
     input.movement = Vec2::ZERO;
@@ -18,18 +19,17 @@ pub fn update_movement_input(keys: Res<ButtonInput<KeyCode>>, mut input: ResMut<
     }
 }
 
-// This will be called client-side to send movement input to server
-// For now, we'll just prepare the structure
+// Called client-side to send movement input to server
 pub fn apply_local_movement(
     input: Res<PlayerInput>,
     camera_query: Query<&CameraController>,
+    mut movement_writer: MessageWriter<MovementInput>,
 ) {
-    // TODO: Send input to server via events/RPC
-    // Server will validate and apply movement
     if let Ok(_camera) = camera_query.single() {
-        if input.movement.length_squared() > 0.0 {
-            // Movement input detected - in full implementation, send to server
-            // For now, this is a placeholder for client-side input collection
-        }
+        // Always send movement input, even if zero (for stopping movement)
+        movement_writer.write(MovementInput {
+            forward: input.movement.x,
+            right: input.movement.y,
+        });
     }
 }
