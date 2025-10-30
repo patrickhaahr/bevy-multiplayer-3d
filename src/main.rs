@@ -11,6 +11,7 @@ use game::{
     cursor::CursorPlugin,
     init_server_state, render_replicated_players, sync_remote_player_rotation, sync_player_position, setup_world, setup_server_world, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position,
     shooting::TracerPlugin,
+    spawn_enemies_system, enemy_fsm_system, enemy_movement_system, render_enemies_system, sync_enemy_position, sync_transform_to_enemy_position,
 };
 use game::player::{
     camera_controller::update_camera_controller,
@@ -19,8 +20,8 @@ use game::player::{
     shooting::handle_shooting,
 };
 use network::{
-    client_connection_system, server_connection_system, setup_client, setup_server, Player,
-    PlayerPosition, PlayerRotation, PORT,
+    client_connection_system, server_connection_system, setup_client, setup_server, 
+    Player, PlayerPosition, PlayerRotation, Enemy, EnemyPosition, PORT,
 };
 use network::protocol::{RotationInput, MovementInput};
 
@@ -68,10 +69,12 @@ fn run_server() {
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
+        .replicate::<Enemy>()
+        .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)
         .add_client_message::<MovementInput>(Channel::Unordered)
         .add_systems(Startup, (setup_server, init_server_state, setup_server_world))
-        .add_systems(Update, (server_connection_system, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position))
+        .add_systems(Update, (server_connection_system, spawn_players_system, spawn_enemies_system, enemy_fsm_system, enemy_movement_system, handle_rotation_input, handle_movement_input, sync_transform_to_position, sync_transform_to_enemy_position))
         .run();
 }
 
@@ -98,6 +101,8 @@ fn run_client(server_ip: String) {
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
+        .replicate::<Enemy>()
+        .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)
         .add_client_message::<MovementInput>(Channel::Unordered)
         .init_resource::<PlayerInput>()
@@ -108,6 +113,8 @@ fn run_client(server_ip: String) {
             (
                 client_connection_system,
                 render_replicated_players,
+                render_enemies_system,
+                sync_enemy_position,
                 sync_remote_player_rotation,
                 sync_player_position,
                 update_camera_controller,

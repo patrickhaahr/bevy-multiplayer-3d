@@ -41,3 +41,16 @@ pub struct PlayerRotation {
     pub yaw: f32,   // Horizontal rotation (Y-axis) in degrees
     pub pitch: f32, // Vertical rotation (X-axis) in degrees
 }
+
+// Enemy replicated components
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Enemy {
+    pub id: u32,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct EnemyPosition {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
