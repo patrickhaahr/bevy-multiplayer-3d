@@ -11,6 +11,7 @@ bevy_replicon_renet = "0.12"
 renet = "1.2.0"
 renet_netcode = "1.2.0"
 serde = "1.0"
+rand = "0.8"
 
 
 [profile.dev]

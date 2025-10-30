@@ -8,6 +8,10 @@ use crate::game::world::state::PlayerCount;
 use crate::game::player::components::PlayerPhysicsBundle;
 use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, Health, RotationInput, MovementInput, ShootEvent, Enemy};
 
+// Marker component for players that need to respawn
+#[derive(Component)]
+pub struct NeedsRespawn;
+
 pub fn spawn_players_system(
     mut commands: Commands,
     mut server_events: MessageReader<ServerEvent>,
@@ -152,6 +156,7 @@ pub fn sync_transform_to_position(
 
 // Server-side system to handle shoot events from clients
 pub fn handle_shoot_events(
+    mut commands: Commands,
     mut shoot_events: MessageReader<FromClient<ShootEvent>>,
     client_entities: Query<&NetworkId>,
     players: Query<(Entity, &Player)>,
@@ -218,7 +223,8 @@ pub fn handle_shoot_events(
                             health.current = 0.0;
                             println!("[SERVER] Client {} killed player {} at {:.2}m", 
                                 client_id, hit_player.id, toi);
-                            // TODO: Despawn player or trigger respawn
+                            // Mark player for respawn
+                            commands.entity(hit_entity).insert(NeedsRespawn);
                         } else {
                             println!("[SERVER] Client {} hit player {} at {:.2}m (Health: {:.0}/{:.0})", 
                                 client_id, hit_player.id, toi, health.current, health.max);
@@ -227,5 +233,48 @@ pub fn handle_shoot_events(
                 }
             }
         });
+    }
+}
+
+// Server-side system to respawn dead players
+pub fn respawn_players_system(
+    mut commands: Commands,
+    mut players_to_respawn: Query<
+        (Entity, &Player, &mut Health, &mut PlayerPosition, &mut Transform, &mut Velocity),
+        With<NeedsRespawn>
+    >,
+) {
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    
+    for (entity, player, mut health, mut position, mut transform, mut velocity) in players_to_respawn.iter_mut() {
+        // Choose random spawn position in a circle
+        let angle: f32 = rng.r#gen();
+        let angle = angle * std::f32::consts::TAU;
+        let radius = rng.gen_range(3.0..8.0);
+        let x = angle.cos() * radius;
+        let z = angle.sin() * radius;
+        let spawn_y = 5.0;
+        
+        // Reset health
+        health.current = health.max;
+        
+        // Update position
+        position.x = x;
+        position.y = spawn_y;
+        position.z = z;
+        
+        // Update transform
+        transform.translation = Vec3::new(x, spawn_y, z);
+        
+        // Reset velocity
+        velocity.linvel = Vec3::ZERO;
+        velocity.angvel = Vec3::ZERO;
+        
+        // Remove respawn marker
+        commands.entity(entity).remove::<NeedsRespawn>();
+        
+        println!("[SERVER] Respawned player {} at ({:.2}, {:.2}, {:.2})", 
+            player.id, x, spawn_y, z);
     }
 }
