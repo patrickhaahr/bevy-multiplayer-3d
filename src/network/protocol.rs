@@ -31,10 +31,6 @@ pub struct Player {
     pub color_index: u8,
 }
 
-// Server-only component to map client entities to player entities
-#[derive(Component)]
-pub struct ClientEntity(pub bevy::prelude::Entity);
-
 #[derive(Component, Serialize, Deserialize)]
 pub struct PlayerPosition {
     pub x: f32,
