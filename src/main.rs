@@ -9,7 +9,7 @@ mod network;
 
 use game::{
     cursor::CursorPlugin,
-    init_server_state, render_replicated_players, sync_remote_player_rotation, sync_player_position, setup_world, setup_server_world, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position,
+    init_server_state, render_replicated_players, sync_remote_player_rotation, sync_player_position, setup_world, setup_server_world, spawn_players_system, handle_rotation_input, handle_movement_input, sync_transform_to_position, handle_shoot_events,
     shooting::TracerPlugin,
     spawn_enemies_system, enemy_fsm_system, enemy_movement_system, render_enemies_system, sync_enemy_position, sync_transform_to_enemy_position,
 };
@@ -23,7 +23,7 @@ use network::{
     client_connection_system, server_connection_system, setup_client, setup_server, 
     Player, PlayerPosition, PlayerRotation, Enemy, EnemyPosition, PORT,
 };
-use network::protocol::{RotationInput, MovementInput};
+use network::protocol::{RotationInput, MovementInput, ShootEvent};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -73,8 +73,9 @@ fn run_server() {
         .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)
         .add_client_message::<MovementInput>(Channel::Unordered)
+        .add_client_message::<ShootEvent>(Channel::Unordered)
         .add_systems(Startup, (setup_server, init_server_state, setup_server_world))
-        .add_systems(Update, (server_connection_system, spawn_players_system, spawn_enemies_system, enemy_fsm_system, enemy_movement_system, handle_rotation_input, handle_movement_input, sync_transform_to_position, sync_transform_to_enemy_position))
+        .add_systems(Update, (server_connection_system, spawn_players_system, spawn_enemies_system, enemy_fsm_system, enemy_movement_system, handle_rotation_input, handle_movement_input, handle_shoot_events, sync_transform_to_position, sync_transform_to_enemy_position))
         .run();
 }
 
@@ -105,6 +106,7 @@ fn run_client(server_ip: String) {
         .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)
         .add_client_message::<MovementInput>(Channel::Unordered)
+        .add_client_message::<ShootEvent>(Channel::Unordered)
         .init_resource::<PlayerInput>()
         .insert_resource(network::ServerIpAddress(server_ip))
         .add_systems(Startup, (setup_client, setup_world))

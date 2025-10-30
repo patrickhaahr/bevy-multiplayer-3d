@@ -18,6 +18,12 @@ pub struct MovementInput {
     pub right: f32,    // positive = right, negative = left
 }
 
+#[derive(Message, Serialize, Deserialize)]
+pub struct ShootEvent {
+    pub origin: Vec3,
+    pub direction: Vec3,
+}
+
 // Replicated components
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Player {

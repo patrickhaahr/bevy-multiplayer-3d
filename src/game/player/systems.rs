@@ -5,7 +5,7 @@ use bevy_replicon::shared::backend::connected_client::NetworkId;
 use bevy_replicon_renet::renet::ServerEvent;
 
 use crate::game::world::state::PlayerCount;
-use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, RotationInput, MovementInput};
+use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, RotationInput, MovementInput, ShootEvent, Enemy};
 
 pub fn spawn_players_system(
     mut commands: Commands,
@@ -179,5 +179,70 @@ pub fn sync_transform_to_position(
                 velocity.linvel.z,
             );
         }
+    }
+}
+
+// Server-side system to handle shoot events from clients
+pub fn handle_shoot_events(
+    mut shoot_events: MessageReader<FromClient<ShootEvent>>,
+    client_entities: Query<&NetworkId>,
+    players: Query<&Player>,
+    enemies: Query<Entity, With<Enemy>>,
+    rapier_context: ReadRapierContext,
+) {
+    for event in shoot_events.read() {
+        let sender_entity = match event.client_id {
+            ClientId::Client(entity) => entity,
+            ClientId::Server => {
+                continue;
+            }
+        };
+
+        let Ok(network_id) = client_entities.get(sender_entity) else {
+            warn!("Received shoot event from unknown client entity {:?}", sender_entity);
+            continue;
+        };
+
+        let client_id = network_id.get();
+        
+        // Verify this client has a player
+        let player_exists = players.iter().any(|player| player.id == client_id);
+        if !player_exists {
+            warn!("Received shoot event from client {} without a player", client_id);
+            continue;
+        }
+
+        println!("[SERVER] Client {} shot at origin {:?}, direction {:?}", 
+            client_id, event.message.origin, event.message.direction);
+
+        // Perform raycast on server
+        let Ok(rapier_context) = rapier_context.single() else {
+            warn!("No rapier context available");
+            continue;
+        };
+
+        let filter = QueryFilter::default();
+
+        rapier_context.with_query_pipeline(filter, |query_pipeline| {
+            if let Some((hit_entity, toi)) = query_pipeline.cast_ray(
+                event.message.origin,
+                event.message.direction,
+                f32::MAX,
+                true,
+            ) {
+                let hit_position = event.message.origin + event.message.direction * toi;
+                println!("[SERVER] Hit entity {:?} at distance {}, position {:?}", 
+                    hit_entity, toi, hit_position);
+
+                // Check if we hit an enemy
+                if enemies.contains(hit_entity) {
+                    println!("[SERVER] HIT! Enemy {:?} was hit by client {}", hit_entity, client_id);
+                } else {
+                    println!("[SERVER] Hit non-enemy entity {:?}", hit_entity);
+                }
+            } else {
+                println!("[SERVER] Shot missed - no hit detected");
+            }
+        });
     }
 }
