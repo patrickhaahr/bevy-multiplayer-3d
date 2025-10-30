@@ -8,7 +8,7 @@ mod network;
 
 use game::{
     cursor::CursorPlugin,
-    init_server_state, render_replicated_players, setup_world, spawn_players_system,
+    init_server_state, render_replicated_players, sync_remote_player_rotation, setup_world, spawn_players_system, handle_rotation_input,
     shooting::TracerPlugin,
 };
 use game::player::{
@@ -19,8 +19,9 @@ use game::player::{
 };
 use network::{
     client_connection_system, server_connection_system, setup_client, setup_server, Player,
-    PlayerPosition, PORT,
+    PlayerPosition, PlayerRotation, PORT,
 };
+use network::protocol::RotationInput;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -55,8 +56,10 @@ fn run_server() {
         ))
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
+        .replicate::<PlayerRotation>()
+        .add_client_message::<RotationInput>(Channel::Unordered)
         .add_systems(Startup, (setup_server, init_server_state))
-        .add_systems(Update, (server_connection_system, spawn_players_system))
+        .add_systems(Update, (server_connection_system, spawn_players_system, handle_rotation_input))
         .run();
 }
 
@@ -82,6 +85,8 @@ fn run_client() {
         ))
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
+        .replicate::<PlayerRotation>()
+        .add_client_message::<RotationInput>(Channel::Unordered)
         .init_resource::<PlayerInput>()
         .add_systems(Startup, (setup_client, setup_world))
         .add_systems(
@@ -89,6 +94,7 @@ fn run_client() {
             (
                 client_connection_system,
                 render_replicated_players,
+                sync_remote_player_rotation,
                 update_camera_controller,
                 update_movement_input,
                 apply_local_movement,

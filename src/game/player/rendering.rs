@@ -2,21 +2,21 @@ use bevy::prelude::*;
 
 use super::components::{GunModel, RenderedPlayer, TracerSpawnSpot};
 use super::camera_controller::CameraController;
-use crate::network::protocol::{Player, PlayerPosition};
+use crate::network::protocol::{Player, PlayerPosition, PlayerRotation};
 use crate::network::client::LocalClientId;
 
 pub fn render_replicated_players(
     mut commands: Commands,
-    players: Query<(Entity, &Player, &PlayerPosition), Without<RenderedPlayer>>,
+    players: Query<(Entity, &Player, &PlayerPosition, &PlayerRotation), Without<RenderedPlayer>>,
     asset_server: Res<AssetServer>,
     local_client_id: Res<LocalClientId>,
 ) {
     let client_id = local_client_id.0;
     
-    for (entity, player, pos) in players.iter() {
+    for (entity, player, pos, rotation) in players.iter() {
         println!(
-            "Rendering player {} at ({}, {}, {})",
-            player.id, pos.x, pos.y, pos.z
+            "Rendering player {} at ({}, {}, {}) with rotation (yaw: {}, pitch: {})",
+            player.id, pos.x, pos.y, pos.z, rotation.yaw, rotation.pitch
         );
 
         let is_local_player = player.id == client_id;
@@ -45,7 +45,7 @@ pub fn render_replicated_players(
                 GlobalTransform::default(),
                 CameraController {
                     sensitivity: 0.035,
-                    rotation: Vec2::ZERO,
+                    rotation: Vec2::new(rotation.pitch, rotation.yaw),
                     rotation_lock: 88.0,
                 },
             )).id();
@@ -95,6 +95,22 @@ pub fn render_replicated_players(
             // Make model and gun children of player entity
             commands.entity(model_entity).set_parent_in_place(entity);
             commands.entity(gun_entity).set_parent_in_place(entity);
+        }
+    }
+}
+
+pub fn sync_remote_player_rotation(
+    mut players: Query<(&Player, &PlayerRotation, &mut Transform), With<RenderedPlayer>>,
+    local_client_id: Res<LocalClientId>,
+) {
+    let client_id = local_client_id.0;
+    
+    for (player, rotation, mut transform) in players.iter_mut() {
+        // Only update remote players (not the local player)
+        if player.id != client_id {
+            // Apply yaw rotation to the player entity (makes them face the right direction)
+            let y_quat = Quat::from_axis_angle(Vec3::Y, rotation.yaw.to_radians());
+            transform.rotation = y_quat;
         }
     }
 }
