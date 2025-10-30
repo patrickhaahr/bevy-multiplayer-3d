@@ -26,6 +26,9 @@ pub fn render_replicated_players(
             RenderedPlayer,
             Transform::from_xyz(pos.x, pos.y, pos.z),
             GlobalTransform::default(),
+            Visibility::Inherited,
+            InheritedVisibility::default(),
+            ViewVisibility::default(),
         ));
 
         if is_local_player {
@@ -69,10 +72,29 @@ pub fn render_replicated_players(
             commands.entity(tracer_spawn_entity).set_parent_in_place(camera_entity);
             
         } else {
-            // For remote players: spawn third-person model
+            // For remote players: spawn third-person model as child entity
+            println!("Loading third-person model for remote player {}", player.id);
             let player_model: Handle<Scene> = asset_server.load("models/player.glb#Scene0");
             
-            commands.entity(entity).insert(SceneRoot(player_model));
+            let model_entity = commands.spawn((
+                SceneRoot(player_model),
+                Transform::from_xyz(0.0, -1.5, 0.0)
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
+                GlobalTransform::default(),
+            )).id();
+            
+            // Load gun model for remote player
+            let gun_model: Handle<Scene> = asset_server.load("models/gun.glb#Scene0");
+            let gun_entity = commands.spawn((
+                SceneRoot(gun_model),
+                Transform::from_xyz(0.5, 0.8, 0.3)  // Position gun relative to player model
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
+                GlobalTransform::default(),
+            )).id();
+            
+            // Make model and gun children of player entity
+            commands.entity(model_entity).set_parent_in_place(entity);
+            commands.entity(gun_entity).set_parent_in_place(entity);
         }
     }
 }

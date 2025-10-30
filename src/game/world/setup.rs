@@ -27,14 +27,14 @@ pub fn setup_world(
         affects_lightmapped_meshes: false,
     });
 
-    // Ground plane
+    // Ground plane (moved down to -1.0 so models are visible)
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(10.0)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             base_color: Color::srgb(0.2, 0.7, 0.3),
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.0, 0.0),
+        Transform::from_xyz(0.0, -1.0, 0.0),
     ));
 }
 
