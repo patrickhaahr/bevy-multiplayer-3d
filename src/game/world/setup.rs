@@ -7,6 +7,7 @@ pub fn setup_world(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     // Note: Camera is now spawned per-player in the rendering system
     // when the local player entity is replicated
@@ -27,6 +28,13 @@ pub fn setup_world(
         brightness: 300.0,
         affects_lightmapped_meshes: false,
     });
+
+    // Spawn decorative car
+    commands.spawn((
+        SceneRoot(asset_server.load("models/car.glb#Scene0")),
+        Transform::from_xyz(10.0, 0.0, 10.0)
+            .with_scale(Vec3::splat(1.0)),
+    ));
 
     // Ground plane - must have RigidBody::Fixed to be a true static collider
     // Positioned at y=0.0, collider extends from y=-0.1 to y=0.1
