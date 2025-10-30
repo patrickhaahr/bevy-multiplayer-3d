@@ -2,6 +2,10 @@
 
 A server-authoritative multiplayer 3D shooter built with Rust and the Bevy game engine. Players can connect to a dedicated server, move around a 3D world, and engage in combat.
 
+## Gameplay
+
+![Gameplay Screenshot](assets/media/screenshot.png)
+
 ## What is This?
 
 This is a networked multiplayer game where:
