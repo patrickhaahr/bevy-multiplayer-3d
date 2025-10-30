@@ -158,27 +158,13 @@ pub fn handle_movement_input(
 
 // Server-side system to sync physics Transform back to replicated PlayerPosition
 pub fn sync_transform_to_position(
-    mut players: Query<(&Transform, &mut PlayerPosition, &Velocity), With<Player>>,
-    time: Res<Time>,
+    mut players: Query<(&Transform, &mut PlayerPosition), With<Player>>,
 ) {
-    for (transform, mut position, velocity) in players.iter_mut() {
+    for (transform, mut position) in players.iter_mut() {
         // Update replicated position from physics transform
         position.x = transform.translation.x;
         position.y = transform.translation.y;
         position.z = transform.translation.z;
-
-        // Debug output every second
-        if time.elapsed_secs() as u32 % 2 == 0 && time.delta_secs() < 0.02 {
-            println!(
-                "[SERVER] Player at pos({:.2}, {:.2}, {:.2}), vel({:.2}, {:.2}, {:.2})",
-                transform.translation.x,
-                transform.translation.y,
-                transform.translation.z,
-                velocity.linvel.x,
-                velocity.linvel.y,
-                velocity.linvel.z,
-            );
-        }
     }
 }
 
@@ -186,7 +172,7 @@ pub fn sync_transform_to_position(
 pub fn handle_shoot_events(
     mut shoot_events: MessageReader<FromClient<ShootEvent>>,
     client_entities: Query<&NetworkId>,
-    players: Query<&Player>,
+    players: Query<(Entity, &Player)>,
     enemies: Query<Entity, With<Enemy>>,
     rapier_context: ReadRapierContext,
 ) {
@@ -206,7 +192,7 @@ pub fn handle_shoot_events(
         let client_id = network_id.get();
         
         // Verify this client has a player
-        let player_exists = players.iter().any(|player| player.id == client_id);
+        let player_exists = players.iter().any(|(_, player)| player.id == client_id);
         if !player_exists {
             warn!("Received shoot event from client {} without a player", client_id);
             continue;
@@ -237,8 +223,14 @@ pub fn handle_shoot_events(
                 // Check if we hit an enemy
                 if enemies.contains(hit_entity) {
                     println!("[SERVER] HIT! Enemy {:?} was hit by client {}", hit_entity, client_id);
-                } else {
-                    println!("[SERVER] Hit non-enemy entity {:?}", hit_entity);
+                }
+                // Check if we hit a player
+                else if let Ok((_, hit_player)) = players.get(hit_entity) {
+                    println!("[SERVER] HIT! Player {} (entity {:?}) was hit by client {}", 
+                        hit_player.id, hit_entity, client_id);
+                }
+                else {
+                    println!("[SERVER] Hit non-target entity {:?}", hit_entity);
                 }
             } else {
                 println!("[SERVER] Shot missed - no hit detected");
