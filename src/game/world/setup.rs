@@ -29,9 +29,9 @@ pub fn setup_world(
         affects_lightmapped_meshes: false,
     });
 
-    // Spawn decorative car
+    // Spawn environment decoration
     commands.spawn((
-        SceneRoot(asset_server.load("models/car.glb#Scene0")),
+        SceneRoot(asset_server.load("models/environment.glb#Scene0")),
         Transform::from_xyz(10.0, 0.0, 10.0)
             .with_scale(Vec3::splat(1.0)),
     ));
