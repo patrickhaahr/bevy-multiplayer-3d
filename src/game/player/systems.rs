@@ -5,6 +5,7 @@ use bevy_replicon::shared::backend::connected_client::NetworkId;
 use bevy_replicon_renet::renet::ServerEvent;
 
 use crate::game::world::state::PlayerCount;
+use crate::game::player::components::PlayerPhysicsBundle;
 use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, RotationInput, MovementInput, ShootEvent, Enemy};
 
 pub fn spawn_players_system(
@@ -36,27 +37,7 @@ pub fn spawn_players_system(
                     PlayerRotation { yaw: 0.0, pitch: 0.0 },
                     Transform::from_xyz(x, spawn_y, z),
                     GlobalTransform::default(),
-                    RigidBody::Dynamic,
-                    // Capsule: half-height=0.9, radius=0.3 (total height ~2.1 units)
-                    Collider::capsule_y(0.9, 0.3),
-                    // Lock all rotations so player stays upright
-                    LockedAxes::ROTATION_LOCKED,
-                    Velocity::default(),
-                    // Add mass so physics works properly
-                    AdditionalMassProperties::Mass(80.0), // 80kg player
-                    GravityScale(1.0), // Full gravity
-                    Damping {
-                        linear_damping: 0.5, // Slow down when not moving
-                        angular_damping: 1.0,
-                    },
-                    Friction {
-                        coefficient: 0.7,
-                        combine_rule: CoefficientCombineRule::Average,
-                    },
-                    Restitution {
-                        coefficient: 0.0, // No bounciness
-                        combine_rule: CoefficientCombineRule::Min,
-                    },
+                    PlayerPhysicsBundle::default(),
                     Replicated,
                 ))
                 .id();

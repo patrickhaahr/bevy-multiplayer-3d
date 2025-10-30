@@ -8,7 +8,7 @@ pub enum EnemyState {
     Attack,
 }
 
-/// Patrol waypoint index (server-only)
+/// Patrol waypoint index (server-only, pure data component)
 #[derive(Component)]
 pub struct PatrolData {
     pub waypoints: Vec<Vec3>,
@@ -30,14 +30,15 @@ impl PatrolData {
             current_waypoint: 0,
         }
     }
+}
 
-    pub fn get_current_waypoint(&self) -> Vec3 {
-        self.waypoints[self.current_waypoint]
-    }
+// Helper functions for patrol logic (to be used in systems)
+pub fn get_current_waypoint(patrol: &PatrolData) -> Vec3 {
+    patrol.waypoints[patrol.current_waypoint]
+}
 
-    pub fn advance(&mut self) {
-        self.current_waypoint = (self.current_waypoint + 1) % self.waypoints.len();
-    }
+pub fn advance_waypoint(patrol: &mut PatrolData) {
+    patrol.current_waypoint = (patrol.current_waypoint + 1) % patrol.waypoints.len();
 }
 
 /// Enemy movement parameters (server-only)

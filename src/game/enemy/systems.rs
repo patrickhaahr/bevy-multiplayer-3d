@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use bevy_replicon::prelude::*;
 use crate::network::protocol::{PlayerPosition, Enemy, EnemyPosition};
-use super::components::*;
+use super::components::{EnemyState, PatrolData, EnemyMovement, RenderedEnemy, get_current_waypoint, advance_waypoint};
 
 /// Spawn enemies in the world (server-side)
 pub fn spawn_enemies_system(
@@ -141,11 +141,11 @@ pub fn enemy_movement_system(
     for (mut enemy_transform, state, mut patrol, movement) in enemies.iter_mut() {
         match *state {
             EnemyState::Patrol => {
-                let waypoint = patrol.get_current_waypoint();
+                let waypoint = get_current_waypoint(&patrol);
                 let direction = (waypoint - enemy_transform.translation).normalize_or_zero();
                 
                 if enemy_transform.translation.distance(waypoint) < 0.5 {
-                    patrol.advance();
+                    advance_waypoint(&mut patrol);
                 }
                 
                 enemy_transform.translation += direction * movement.patrol_speed * time.delta_secs();
