@@ -22,7 +22,7 @@ use game::player::{
 };
 use network::{
     client_connection_system, server_connection_system, setup_client, setup_server, 
-    Player, PlayerPosition, PlayerRotation, Enemy, EnemyPosition, PORT,
+    Player, PlayerPosition, PlayerRotation, Health, Enemy, EnemyPosition, PORT,
 };
 use network::protocol::{RotationInput, MovementInput, ShootEvent};
 
@@ -70,6 +70,7 @@ fn run_server() {
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
+        .replicate::<Health>()
         .replicate::<Enemy>()
         .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)
@@ -103,6 +104,7 @@ fn run_client(server_ip: String) {
         .replicate::<Player>()
         .replicate::<PlayerPosition>()
         .replicate::<PlayerRotation>()
+        .replicate::<Health>()
         .replicate::<Enemy>()
         .replicate::<EnemyPosition>()
         .add_client_message::<RotationInput>(Channel::Unordered)

@@ -6,7 +6,7 @@ use bevy_replicon_renet::renet::ServerEvent;
 
 use crate::game::world::state::PlayerCount;
 use crate::game::player::components::PlayerPhysicsBundle;
-use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, RotationInput, MovementInput, ShootEvent, Enemy};
+use crate::network::protocol::{Player, PlayerPosition, PlayerRotation, Health, RotationInput, MovementInput, ShootEvent, Enemy};
 
 pub fn spawn_players_system(
     mut commands: Commands,
@@ -35,6 +35,7 @@ pub fn spawn_players_system(
                     },
                     PlayerPosition { x, y: spawn_y, z },
                     PlayerRotation { yaw: 0.0, pitch: 0.0 },
+                    Health { current: 100.0, max: 100.0 },
                     Transform::from_xyz(x, spawn_y, z),
                     GlobalTransform::default(),
                     PlayerPhysicsBundle::default(),
@@ -154,9 +155,12 @@ pub fn handle_shoot_events(
     mut shoot_events: MessageReader<FromClient<ShootEvent>>,
     client_entities: Query<&NetworkId>,
     players: Query<(Entity, &Player)>,
+    mut player_healths: Query<&mut Health, With<Player>>,
     enemies: Query<Entity, With<Enemy>>,
     rapier_context: ReadRapierContext,
 ) {
+    const DAMAGE_PER_HIT: f32 = 25.0;
+    
     for event in shoot_events.read() {
         let sender_entity = match event.client_id {
             ClientId::Client(entity) => entity,
@@ -205,9 +209,21 @@ pub fn handle_shoot_events(
                         client_id, hit_entity, toi);
                 }
                 // Check if we hit a player
-                else if let Ok((_, hit_player)) = players.get(hit_entity) {
-                    println!("[SERVER] Client {} hit player {} at {:.2}m", 
-                        client_id, hit_player.id, toi);
+                else if let Ok((hit_entity, hit_player)) = players.get(hit_entity) {
+                    // Apply damage to the hit player
+                    if let Ok(mut health) = player_healths.get_mut(hit_entity) {
+                        health.current -= DAMAGE_PER_HIT;
+                        
+                        if health.current <= 0.0 {
+                            health.current = 0.0;
+                            println!("[SERVER] Client {} killed player {} at {:.2}m", 
+                                client_id, hit_player.id, toi);
+                            // TODO: Despawn player or trigger respawn
+                        } else {
+                            println!("[SERVER] Client {} hit player {} at {:.2}m (Health: {:.0}/{:.0})", 
+                                client_id, hit_player.id, toi, health.current, health.max);
+                        }
+                    }
                 }
             }
         });

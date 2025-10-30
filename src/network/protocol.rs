@@ -44,6 +44,12 @@ pub struct PlayerRotation {
     pub pitch: f32, // Vertical rotation (X-axis) in degrees
 }
 
+#[derive(Component, Serialize, Deserialize)]
+pub struct Health {
+    pub current: f32,
+    pub max: f32,
+}
+
 // Enemy replicated components
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct Enemy {
