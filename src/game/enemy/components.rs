@@ -24,17 +24,17 @@ impl PatrolData {
             center + Vec3::new(-radius, 0.0, -radius),
             center + Vec3::new(-radius, 0.0, radius),
         ];
-        
+
         Self {
             waypoints,
             current_waypoint: 0,
         }
     }
-    
+
     pub fn get_current_waypoint(&self) -> Vec3 {
         self.waypoints[self.current_waypoint]
     }
-    
+
     pub fn advance(&mut self) {
         self.current_waypoint = (self.current_waypoint + 1) % self.waypoints.len();
     }
@@ -52,7 +52,7 @@ pub struct EnemyMovement {
 impl Default for EnemyMovement {
     fn default() -> Self {
         Self {
-            chase_range: 15.0,
+            chase_range: 4.0,
             attack_range: 2.5,
             patrol_speed: 2.0,
             chase_speed: 4.0, // Slower than player
