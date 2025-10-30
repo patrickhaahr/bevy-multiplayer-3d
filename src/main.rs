@@ -35,11 +35,19 @@ fn main() {
 
     match mode {
         "server" => run_server(),
-        "client" => run_client(),
+        "client" => {
+            let server_ip = if args.len() > 2 {
+                args[2].clone()
+            } else {
+                "127.0.0.1".to_string() // Default to localhost
+            };
+            run_client(server_ip)
+        }
         _ => {
-            eprintln!("Usage: {} [server|client]", args[0]);
+            eprintln!("Usage: {} [server|client] [server_ip]", args[0]);
             eprintln!("  server - Run as server (default)");
-            eprintln!("  client - Run as client");
+            eprintln!("  client [server_ip] - Run as client (default server_ip: 127.0.0.1)");
+            eprintln!("\nExample: {} client 192.168.1.100", args[0]);
         }
     }
 }
@@ -67,8 +75,8 @@ fn run_server() {
         .run();
 }
 
-fn run_client() {
-    println!("Starting client, connecting to localhost:{}...", PORT);
+fn run_client(server_ip: String) {
+    println!("Starting client, connecting to {}:{}...", server_ip, PORT);
 
     App::new()
         .add_plugins((
@@ -93,6 +101,7 @@ fn run_client() {
         .add_client_message::<RotationInput>(Channel::Unordered)
         .add_client_message::<MovementInput>(Channel::Unordered)
         .init_resource::<PlayerInput>()
+        .insert_resource(network::ServerIpAddress(server_ip))
         .add_systems(Startup, (setup_client, setup_world))
         .add_systems(
             Update,

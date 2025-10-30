@@ -6,7 +6,7 @@ use bevy_replicon_renet::{
 };
 use renet_netcode::{ClientAuthentication, NetcodeClientTransport};
 use std::{
-    net::{Ipv4Addr, SocketAddr, UdpSocket},
+    net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
 
@@ -17,10 +17,20 @@ use super::protocol::PROTOCOL_ID;
 #[derive(Resource)]
 pub struct LocalClientId(pub u64);
 
-pub fn setup_client(mut commands: Commands, channels: Res<RepliconChannels>) {
-    let server_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), PORT);
-    let socket =
-        UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).expect("Failed to bind client socket");
+// Resource to store the server IP address
+#[derive(Resource)]
+pub struct ServerIpAddress(pub String);
+
+pub fn setup_client(
+    mut commands: Commands,
+    channels: Res<RepliconChannels>,
+    server_ip: Res<ServerIpAddress>,
+) {
+    let server_addr: SocketAddr = format!("{}:{}", server_ip.0, PORT)
+        .parse()
+        .expect("Invalid server IP address");
+    
+    let socket = UdpSocket::bind("0.0.0.0:0").expect("Failed to bind client socket");
 
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
