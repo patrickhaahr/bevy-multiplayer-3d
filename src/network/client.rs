@@ -61,7 +61,12 @@ pub fn setup_client(
     commands.insert_resource(transport);
     commands.insert_resource(LocalClientId(client_id));
 
-    println!("Client connecting to {} with ID {}", server_addr, client_id);
+    let display_addr = if server_ip.0 == "127.0.0.1" || server_ip.0 == "localhost" {
+        server_addr.to_string()
+    } else {
+        format!("<custom>:{}", PORT)
+    };
+    println!("Client connecting to {} with ID {}", display_addr, client_id);
 }
 
 pub fn client_connection_system(client: Option<Res<RenetClient>>) {

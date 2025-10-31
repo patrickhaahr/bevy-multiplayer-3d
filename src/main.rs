@@ -38,7 +38,27 @@ fn main() {
     match mode {
         "server" => run_server(),
         "client" => {
-            let server_ip = if args.len() > 2 {
+            let server_ip = if args.contains(&"--ask".to_string()) {
+                // Prompt for IP address with hidden input
+                use std::io::{self, Write};
+                print!("Enter server IP address (default: 127.0.0.1): ");
+                io::stdout().flush().unwrap();
+                
+                match rpassword::read_password() {
+                    Ok(input) => {
+                        let trimmed = input.trim();
+                        if trimmed.is_empty() {
+                            "127.0.0.1".to_string()
+                        } else {
+                            trimmed.to_string()
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("Failed to read input, using default 127.0.0.1");
+                        "127.0.0.1".to_string()
+                    }
+                }
+            } else if args.len() > 2 && args[2] != "--ask" {
                 args[2].clone()
             } else {
                 "127.0.0.1".to_string() // Default to localhost
@@ -46,10 +66,13 @@ fn main() {
             run_client(server_ip)
         }
         _ => {
-            eprintln!("Usage: {} [server|client] [server_ip]", args[0]);
+            eprintln!("Usage: {} [server|client] [server_ip|--ask]", args[0]);
             eprintln!("  server - Run as server (default)");
             eprintln!("  client [server_ip] - Run as client (default server_ip: 127.0.0.1)");
-            eprintln!("\nExample: {} client 192.168.1.100", args[0]);
+            eprintln!("  client --ask - Prompt for server IP address");
+            eprintln!("\nExamples:");
+            eprintln!("  {} client 192.168.1.100", args[0]);
+            eprintln!("  {} client --ask", args[0]);
         }
     }
 }
@@ -82,7 +105,12 @@ fn run_server() {
 }
 
 fn run_client(server_ip: String) {
-    println!("Starting client, connecting to {}:{}...", server_ip, PORT);
+    let display_ip = if server_ip == "127.0.0.1" || server_ip == "localhost" {
+        server_ip.clone()
+    } else {
+        "<custom>".to_string()
+    };
+    println!("Starting client, connecting to {}:{}...", display_ip, PORT);
 
     App::new()
         .add_plugins((
