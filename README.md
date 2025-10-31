@@ -2,6 +2,10 @@
 
 A server-authoritative multiplayer 3D shooter built with Rust and the Bevy game engine. Players can connect to a dedicated server, move around a 3D world, and engage in combat.
 
+This project was created for a presentation explaining Bevy, ECS architecture, Rust memory management, and multiplayer networking using Replicon and Renet.
+
+![Architecture Overview](assets/media/presentation.png)
+
 ## Gameplay
 
 ![Gameplay Screenshot](assets/media/screenshot.png)
@@ -38,42 +42,67 @@ All 3D models are created in **Blender** and exported as `.glb` files:
 - `assets/models/gun.glb` - Weapon model
 - `assets/models/environment.glb` - Environment decoration
 
+## Getting Started
+
+### Cloning the Repository
+
+This project uses **Git LFS** (Large File Storage) for 3D model assets (`.blend` files). You must have Git LFS installed before cloning.
+
+**Install Git LFS:**
+- **Linux**: `sudo apt-get install git-lfs` or `sudo pacman -S git-lfs`
+- **macOS**: `brew install git-lfs`
+- **Windows**: Download installer from [git-lfs.com](https://git-lfs.com/)
+
+After installing Git LFS, initialize it:
+```bash
+git lfs install
+```
+
+**Clone and setup the repository:**
+```bash
+git clone https://github.com/patrickhaahr/bevy-multiplayer-3d.git
+cd bevy-multiplayer-3d
+git lfs pull  # Pull LFS-tracked assets (Blender files)
+```
+
+If you already cloned the repository, make sure you have the latest changes and LFS assets:
+```bash
+git pull
+git lfs pull
+```
+
 ## How to Play
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/tools/install) (latest stable version)
-- Bevy engine dependencies for your platform:
-  - **Linux**: `sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0`
-  - **Fedora**: `sudo dnf install gcc-c++ libX11-devel alsa-lib-devel systemd-devel`
-  - **Arch**: `sudo pacman -S libx11 pkgconf alsa-lib`
-  - **macOS**: Xcode command line tools
-  - **Windows**: No additional dependencies required
-- A terminal/command prompt
+- Bevy engine OS dependencies - See the [official Bevy setup guide](https://bevy.org/learn/quick-start/getting-started/setup/#installing-os-dependencies) for your platform
 
 ### Starting a Server
 
+Open a terminal in the project directory and run:
 ```bash
-cargo run -- server
+cargo run server
 ```
 
 The server will start listening on `0.0.0.0:5000` (all network interfaces).
 
 ### Starting a Client
 
-**Connect to localhost:**
+**Connect to localhost (default):**
+
+Open another terminal in the project directory and run:
 ```bash
-cargo run -- client
+cargo run client
 ```
 
-**Connect to a specific IP address:**
+**Connect to a specific IP address (hidden input):**
+
+For privacy when streaming or presenting, use the `--ask` flag to enter the IP address securely without displaying it on screen:
 ```bash
-cargo run -- client <SERVER_IP>
+cargo run client --ask
 ```
 
-For example, to connect to a server at `192.168.1.100`:
-```bash
-cargo run -- client 192.168.1.100
-```
+You'll be prompted to enter the server IP address. Your input will be hidden for privacy
 
 ### Controls
 - **WASD** - Move player
@@ -88,15 +117,17 @@ cargo run -- client 192.168.1.100
 cargo build --release
 ```
 
-Release binaries will be in `target/release/mp`.
+Release binaries will be in `target/release/bevy-multiplayer-3d`.
+
+Prebuilt binaries are also available in the [GitHub Releases](https://github.com/patrickhaahr/bevy-multiplayer-3d/releases).
 
 ### Running Server and Client Separately
 ```bash
 # Terminal 1 - Server
-./target/release/mp server
+./target/release/bevy-multiplayer-3d server
 
 # Terminal 2 - Client
-./target/release/mp client
+./target/release/bevy-multiplayer-3d client
 ```
 
 ### Network Configuration
