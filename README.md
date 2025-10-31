@@ -25,24 +25,31 @@ The game features:
 - AI enemies with finite state machine (Patrol, Chase, Attack)
 - Flocking behavior AI (cohesion, alignment, separation)
 
-## Technology Stack
+## Architecture
 
-### Core Engine
-- **[Bevy 0.17.2](https://bevyengine.org/)** - Data-driven game engine built in Rust using ECS (Entity Component System) architecture
+```
+Client Input → Server Validation → State Update → Replicate to All Clients
+```
 
-### Networking
-- **[bevy_replicon 0.36.0](https://docs.rs/bevy_replicon/)** - High-level replication framework for Bevy that automatically synchronizes entities and components between server and clients
-- **[bevy_replicon_renet 0.12](https://docs.rs/bevy_replicon_renet/)** - Integration layer connecting bevy_replicon with the renet transport
-- **[renet 1.2](https://docs.rs/renet/)** - UDP-based networking library providing reliable and unreliable channels
+The server runs at a fixed tick rate, processes player inputs, updates physics, and replicates the authoritative game state back to all connected clients. Clients render this state and send their input commands to the server.
 
-### Physics
-- **[bevy_rapier3d](https://github.com/dimforge/bevy_rapier)** - 3D physics engine integration for Bevy, handling collisions, rigid bodies, and physical interactions
+### Enemy AI System
 
-### Assets
-All 3D models are created in **Blender** and exported as `.glb` files:
-- `assets/models/player.glb` - Player character model
-- `assets/models/gun.glb` - Weapon model
-- `assets/models/environment.glb` - Environment decoration
+The game features server-authoritative AI enemies with intelligent behavior:
+
+**Finite State Machine (FSM):**
+- **Patrol State**: Enemies follow waypoint paths around the map
+- **Chase State**: When players enter detection range (4 units), enemies pursue them
+- **Attack State**: Within attack range (2.5 units), enemies stop and engage
+
+**Flocking Behavior** (active during Chase state):
+- **Cohesion**: Enemies move toward the center of their group for coordinated attacks
+- **Alignment**: Enemies match velocities with nearby allies for synchronized movement
+- **Separation**: Enemies maintain minimum distance (2.5 units) to avoid clustering and collision
+
+This creates emergent cooperative hunting behavior where enemy groups work together to surround and attack players, while still maintaining realistic spacing and movement patterns.
+
+For more details, see `AGENTS.md`.
 
 ## Getting Started
 
@@ -152,31 +159,24 @@ bevy-multiplayer-3d client --ask
 - **Protocol ID**: `MULTIPLAYER_SHOOTER`
 - Default server IP: `127.0.0.1` (localhost)
 
-## Architecture
+## Technology Stack
 
-```
-Client Input → Server Validation → State Update → Replicate to All Clients
-```
+### Core Engine
+- **[Bevy 0.17.2](https://bevyengine.org/)** - Data-driven game engine built in Rust using ECS (Entity Component System) architecture
 
-The server runs at a fixed tick rate, processes player inputs, updates physics, and replicates the authoritative game state back to all connected clients. Clients render this state and send their input commands to the server.
+### Networking
+- **[bevy_replicon 0.36.0](https://docs.rs/bevy_replicon/)** - High-level replication framework for Bevy that automatically synchronizes entities and components between server and clients
+- **[bevy_replicon_renet 0.12](https://docs.rs/bevy_replicon_renet/)** - Integration layer connecting bevy_replicon with the renet transport
+- **[renet 1.2](https://docs.rs/renet/)** - UDP-based networking library providing reliable and unreliable channels
 
-### Enemy AI System
+### Physics
+- **[bevy_rapier3d](https://github.com/dimforge/bevy_rapier)** - 3D physics engine integration for Bevy, handling collisions, rigid bodies, and physical interactions
 
-The game features server-authoritative AI enemies with intelligent behavior:
-
-**Finite State Machine (FSM):**
-- **Patrol State**: Enemies follow waypoint paths around the map
-- **Chase State**: When players enter detection range (4 units), enemies pursue them
-- **Attack State**: Within attack range (2.5 units), enemies stop and engage
-
-**Flocking Behavior** (active during Chase state):
-- **Cohesion**: Enemies move toward the center of their group for coordinated attacks
-- **Alignment**: Enemies match velocities with nearby allies for synchronized movement
-- **Separation**: Enemies maintain minimum distance (2.5 units) to avoid clustering and collision
-
-This creates emergent cooperative hunting behavior where enemy groups work together to surround and attack players, while still maintaining realistic spacing and movement patterns.
-
-For more details, see `AGENTS.md`.
+### Assets
+All 3D models are created in **Blender** and exported as `.glb` files:
+- `assets/models/player.glb` - Player character model
+- `assets/models/gun.glb` - Weapon model
+- `assets/models/environment.glb` - Environment decoration
 
 ## License
 
