@@ -1,10 +1,15 @@
 [package]
-name = "mp"
+name = "bevy-multiplayer-3d"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+# Enable dynamic linking for faster dev builds
+dev = ["bevy/dynamic_linking"]
+
 [dependencies]
-bevy = { version = "0.17.2", features = ["dynamic_linking", "jpeg"] }
+bevy = { version = "0.17.2", features = ["jpeg"] }
 bevy_rapier3d = { git = "https://github.com/lukasfri/bevy_rapier", rev = "a5c82f08c86f9fd44430081e7d6ea1a5bb296e8b" }
 bevy_replicon = "0.36.0"
 bevy_replicon_renet = "0.12"

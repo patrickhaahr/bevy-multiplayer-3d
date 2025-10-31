@@ -81,7 +81,7 @@ git lfs pull
 
 Open a terminal in the project directory and run:
 ```bash
-cargo run server
+cargo run --features dev server
 ```
 
 The server will start listening on `0.0.0.0:5000` (all network interfaces).
@@ -92,17 +92,19 @@ The server will start listening on `0.0.0.0:5000` (all network interfaces).
 
 Open another terminal in the project directory and run:
 ```bash
-cargo run client
+cargo run --features dev client
 ```
 
 **Connect to a specific IP address (hidden input):**
 
 For privacy when streaming or presenting, use the `--ask` flag to enter the IP address securely without displaying it on screen:
 ```bash
-cargo run client --ask
+cargo run --features dev client --ask
 ```
 
 You'll be prompted to enter the server IP address. Your input will be hidden for privacy
+
+**Note:** The `--features dev` flag enables dynamic linking for faster compilation during development. For release builds, omit this flag.
 
 ### Controls
 - **WASD** - Move player
@@ -112,22 +114,35 @@ You'll be prompted to enter the server IP address. Your input will be hidden for
 
 ## Development
 
+### Fast Development Builds
+
+For faster iteration during development, use the `dev` feature to enable dynamic linking:
+```bash
+cargo run --features dev server
+cargo run --features dev client
+```
+
+This significantly speeds up recompilation times by linking Bevy dynamically instead of statically.
+
 ### Building for Release
 ```bash
 cargo build --release
 ```
 
-Release binaries will be in `target/release/bevy-multiplayer-3d`.
+Release binaries are statically linked and self-contained. They will be in `target/release/bevy-multiplayer-3d`.
 
 Prebuilt binaries are also available in the [GitHub Releases](https://github.com/patrickhaahr/bevy-multiplayer-3d/releases).
 
 ### Running Server and Client Separately
 ```bash
 # Terminal 1 - Server
-./target/release/bevy-multiplayer-3d server
+bevy-multiplayer-3d server
 
-# Terminal 2 - Client
-./target/release/bevy-multiplayer-3d client
+# Terminal 2 - Client (localhost)
+bevy-multiplayer-3d client
+
+# Terminal 2 - Client (custom IP, hidden input)
+bevy-multiplayer-3d client --ask
 ```
 
 ### Network Configuration

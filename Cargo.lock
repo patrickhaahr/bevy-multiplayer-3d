@@ -341,6 +341,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-multiplayer-3d"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_rapier3d",
+ "bevy_replicon",
+ "bevy_replicon_renet",
+ "rand 0.8.5",
+ "renet",
+ "renet_netcode",
+ "rpassword",
+ "serde",
+]
+
+[[package]]
 name = "bevy_a11y"
 version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3250,21 +3265,6 @@ checksum = "0fbdd3d7436f8b5e892b8b7ea114271ff0fa00bc5acae845d53b07d498616ef6"
 dependencies = [
  "num-traits",
  "pxfm",
-]
-
-[[package]]
-name = "mp"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_rapier3d",
- "bevy_replicon",
- "bevy_replicon_renet",
- "rand 0.8.5",
- "renet",
- "renet_netcode",
- "rpassword",
- "serde",
 ]
 
 [[package]]
